@@ -1,32 +1,3 @@
-; ****************** BEGIN INITIALIZATION FOR ACL2s MODE ****************** ;
-; (Nothing to see here!  Your actual file is after this initialization code);
-
-#+acl2s-startup (er-progn (assign fmt-error-msg "Problem loading the CCG book.~%") (value :invisible))
-(include-book "acl2s/ccg/ccg" :uncertified-okp nil :dir :system :ttags ((:ccg)) :load-compiled-file nil);v4.0 change
-
-;Common base theory for all modes.
-#+acl2s-startup (er-progn (assign fmt-error-msg "Problem loading ACL2s base theory book.~%") (value :invisible))
-(include-book "acl2s/base-theory" :dir :system :ttags :all)
-
-
-#+acl2s-startup (er-progn (assign fmt-error-msg "Problem loading ACL2s customizations book.~%Please choose \"Recertify ACL2s system books\" under the ACL2s menu and retry after successful recertification.") (value :invisible))
-(include-book "custom" :dir :acl2s-modes :ttags :all)
-
-#+acl2s-startup (er-progn (assign fmt-error-msg "Problem setting up ACL2s mode.") (value :invisible))
-
-;Settings common to all ACL2s modes
-(acl2s-common-settings)
-;(acl2::xdoc acl2s::defunc) ;; 3 seconds is too much time to spare -- commenting out [2015-02-01 Sun]
-
-(acl2::xdoc acl2s::defunc) ; almost 3 seconds
-
-; Non-events:
-;(set-guard-checking :none)
-
-(acl2::in-package "ACL2S")
-
-; ******************* END INITIALIZATION FOR ACL2s MODE ******************* ;
-;$ACL2s-SMode$;ACL2s
 #|
 For this homework you will need to use ACL2s and you will need
 to be in ACL2s mode.
@@ -574,280 +545,6 @@ Now, define the  compiler.
    (dup)
    (mul)))
 
-#|
-Q6.
-
-Now, what does it mean for the compiler to be correct?
-
-Informally it means that if:
-
-   x is an expr
-   a is an assignment
-   s is an empty stack
-
-Then if I run the compiler on x to generate a program
-and then I run that program, I back a stack
-with a single element in it: the result of evaluating
-x under a.
-
-Formalize this conjecture.
-|#
-#|
-;; A useful fact about m
-(defthm m-append-dist
-  (implies (and (programp p1)
-                (programp p2)
-                (assignmentp a)
-                (stackp s))
-           (equal (m (append p1 p2) a s)
-                  (m p2 a (m p1 a s)))))
-
-; completion lemmas for each assembly operator
-(defthm m-add
-  (implies (and (integerp m)
-                (integerp n)
-                (stackp s)
-                (assignmentp a))
-           (equal (m '((add)) a
-                     (cons m (cons n s)))
-                  (cons (+ n m) s))))
-(defthm m-mul
-  (implies (and (integerp m)
-                (integerp n)
-                (stackp s)
-                (assignmentp a))
-           (equal (m '((mul)) a
-                     (cons m (cons n s)))
-                  (cons (* n m) s))))
-(defthm m-push
-  (implies (and (integerp i)
-                (assignmentp a)
-                (stackp s))
-           (equal (m (list (list 'push i)) a s)
-                  (cons i s))))
-(defthm m-load
-  (implies (and (symbolp x)
-                (assignmentp a)
-                (stackp s))
-           (equal (m (list (list 'load x)) a s)
-                  (cons (lookup x a) s))))
-(defthm m-dup
-  (implies (and (integerp n)
-                (assignmentp a)
-                (stackp s))
-           (equal (m '((dup) (mul)) a 
-                     (cons n s))
-                  (cons (* n n) s))))
-
-
-Extra Credit. (Hard)
-
-Prove the conjecture above using a paper-pencil proof.
-
-You can also submit an ACL2s proof, but we recommend that you come up
-with a plan, as I showed in class if you want to try this.
-
-T1:
-(implies (and (exprp e)
-              (assignmentp a)
-              (stackp s))
-         (equal (m (compile-expression e) a s)
-                (push-stack (evaluate e a) s)))
-
-This will be proven using the induction scheme of ind-cc   
-
-
-*-expr case:
-
-(implies (and (*-exprp e)
-              (assignmentp a)
-              (stackp s)
-              (implies (and (exprp (car e))
-                            (assignmentp a)
-                            (stackp s))
-                       (equal (m (compile-expression (car e)) a s)
-                              (cons (evaluate (car e) a) s)))
-              (implies (and (exprp (caddr e))
-                            (assignmentp a)
-                            (stackp (m (compile-expression (car e)) a)))
-                       (equal (m (compile-expression (caddr e)) a 
-                                (m (compile-expression (car e)) a s))
-                              (cons (evaluate (caddr e) a)
-                                (m (compile-expression (car e)) a s)))))
-         (equal (m (compile-expression e) a s)
-                (cons (evaluate e a) s)))          
-                
-C1. (*-exprp e)
-C2. (assignmentp a)
-C3. (stackp s)
-C4. (implies (and (exprp (car e))
-                  (assignmentp a)
-                  (stackp s))
-             (equal (m (compile-expression (car e)) a s)
-                    (cons (evaluate (car e) a) s)))
-C5. (implies (and (exprp (caddr e))
-                  (assignmentp a)
-                  (stackp (m (compile-expression (car e)) a)))
-             (equal (m (compile-expression (caddr e)) a 
-                      (m (compile-expression (car e)) a s))
-                    (cons (evaluate (caddr e) a)
-                      (m (compile-expression (car e)) a s))))
----------------------------------
-
-
-(equal (m (compile-expression e) a s)
-       (cons (evaluate e a) s))
-={Def compile-expression, C1}
-(equal (m (append (compile-expression (car e))
-                  (compile-expression (caddr e))
-                  '((mul)))
-          a s)
-       (cons (evaluate e a) s))
-={m-append-dist}
-(equal (m (append (compile-expression (caddr e))
-                  '((mul)))
-          a (m (compile-expression (car e)) a s))
-       (cons (evaluate e a) s))
-={m-append-dist}
-(equal (m '((mul)) a
-          (m (compile-expression (caddr e)) a
-             (m (compile-expression (car e)) a s)))
-       (cons (evaluate e a) s))
-={IH1}
-(equal (m '((mul)) a
-          (cons (evaluate (caddr e) a)
-                (m (compile-expression (car e)) a s)))
-       (cons (evaluate e a) s))
-={IH2}
-(equal (m '((mul)) a
-          (cons (evaluate (caddr e) a)
-                (cons (evaluate (car e) a) s)))
-       (cons (evaluate e a) s))
-={m-mul}       
-(equal (cons (* (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s)
-       (cons (evaluate e a) s))
-={Def evaluate, C1}       
-(equal (cons (* (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s)
-       (cons (* (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s))
-={equal axiom}       
-t       
-
-|#
-
-#|
-+-expr case:
-
-(implies (and (+-exprp e)
-              (assignmentp a)
-              (stackp s)
-              (implies (and (exprp (car e))
-                            (assignmentp a)
-                            (stackp s))
-                       (equal (m (compile-expression (car e)) a s)
-                              (cons (evaluate (car e) a) s)))
-              (implies (and (exprp (caddr e))
-                            (assignmentp a)
-                            (stackp (m (compile-expression (car e)) a)))
-                       (equal (m (compile-expression (caddr e)) a 
-                                (m (compile-expression (car e)) a s))
-                              (cons (evaluate (caddr e) a)
-                                (m (compile-expression (car e)) a s)))))
-         (equal (m (compile-expression e) a s)
-                (cons (evaluate e a) s)))          
-                
-C1. (+-exprp e)
-C2. (assignmentp a)
-C3. (stackp s)
-C4. (implies (and (exprp (car e))
-                  (assignmentp a)
-                  (stackp s))
-             (equal (m (compile-expression (car e)) a s)
-                    (cons (evaluate (car e) a) s)))
-C5. (implies (and (exprp (caddr e))
-                  (assignmentp a)
-                  (stackp (m (compile-expression (car e)) a)))
-             (equal (m (compile-expression (caddr e)) a 
-                      (m (compile-expression (car e)) a s))
-                    (cons (evaluate (caddr e) a)
-                      (m (compile-expression (car e)) a s))))
----------------------------------
-
-
-(equal (m (compile-expression e) a s)
-       (cons (evaluate e a) s))
-={Def compile-expression, C1}
-(equal (m (append (compile-expression (car e))
-                  (compile-expression (caddr e))
-                  '((add)))
-          a s)
-       (cons (evaluate e a) s))
-={m-append-dist}
-(equal (m (append (compile-expression (caddr e))
-                  '((add)))
-          a (m (compile-expression (car e)) a s))
-       (cons (evaluate e a) s))
-={m-append-dist}
-(equal (m '((add)) a
-          (m (compile-expression (caddr e)) a
-             (m (compile-expression (car e)) a s)))
-       (cons (evaluate e a) s))
-={IH1}
-(equal (m '((add)) a
-          (cons (evaluate (caddr e) a)
-                (m (compile-expression (car e)) a s)))
-       (cons (evaluate e a) s))
-={IH2}
-(equal (m '((add)) a
-          (cons (evaluate (caddr e) a)
-                (cons (evaluate (car e) a) s)))
-       (cons (evaluate e a) s))
-={m-add}       
-(equal (cons (+ (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s)
-       (cons (evaluate e a) s))
-={Def evaluate, C1}       
-(equal (cons (+ (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s)
-       (cons (+ (evaluate (car e) a)
-                (evaluate (caddr e) a))
-             s))
-={equal axiom}       
-t  
-|#
-
-#|
-Final Theorem:
-
-(implies (and (exprp e)
-              (assignmentp a))
-         (equal (m (compile-expression e) a nil)
-                (list (evaluate e a))))
-
-C1. (exprp e)
-C2. (assignmentp a)
-------------------
-C3. (stackp nil) {Def stackp}
-
-C4. (equal (m (compile-expression e) a nil)
-           (cons (evaluate e a) nil))
-    {T1, C1, C2, C3}
-
-(equal (m (compile-expression e) a nil)
-       (list (evaluate e a)))
-={Def list}
-(equal (m (compile-expression e) a nil)
-       (cons (evaluate e a) nil))
-={C4}
-t
-|#
 (defunc ind-cc (e a s)
   :input-contract (and (exprp e)
                        (assignmentp a)
@@ -876,8 +573,6 @@ t
                   (m p2 a (m p1 a s)))))
 
 #|
-Attempt 2:
-
 CC:
 (implies (and (exprp e)
               (assignmentp a)
@@ -944,15 +639,38 @@ This will be proven using the induction scheme of ind-cc:
           (equal (m (compile-expression e) a s)
                  (push-stack (evaluate e a) s))))
 
+;; working on +-exprp case
+
 (thm (implies (+-exprp (cons e1 e2))
               (exprp (car (cons e1 e2)))))
 
-(thm (equal (car (cons e1 e2)) e1))#|ACL2s-ToDo-Line|#
+(thm (equal (car (cons e1 e2)) e1))
 
+; This should directly follow from the previous two theorems:
 
 ;(thm (implies (+-exprp (cons e1 e2))
 ;              (exprp e1)))
+
 #|
+(verify (implies (and (+-exprp e)
+               (assignmentp a)
+               (stackp s)
+               (implies (and (exprp (car e))
+                             (assignmentp a)
+                             (stackp s))
+                        (equal (m (compile-expression (car e)) a s)
+                               (push-stack (evaluate (car e) a) s)))
+               (implies (and (exprp (caddr e)) 
+                             (assignmentp a)
+                             (stackp (m (compile-expression (car e)) a s)))
+                        (equal (m (compile-expression (caddr e)) a
+                                  (m (compile-expression (car e)) a s))
+                               (push-stack (evaluate (caddr e) a)
+                                           (m (compile-expression (car e)) a s)))))
+          (equal (m (compile-expression e) a s)
+                 (push-stack (evaluate e a) s))))
+|#
+
 ;; +-expr case
 (defthm cc-+-expr
  (implies (and (+-exprp e)
@@ -975,14 +693,6 @@ This will be proven using the induction scheme of ind-cc:
  :hints (("Goal"
           :do-not-induct t
           )))
-|#
-
-(verify
- (implies (and (exprp e)
-                (assignmentp a)
-                (stackp s))
-           (equal (m (compile-expression e) a s)
-                  (push-stack (evaluate e a) s))))
 
 (defthm compiler-correct
   (implies (and (exprp e)
