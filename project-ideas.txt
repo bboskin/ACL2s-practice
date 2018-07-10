@@ -1,0 +1,20 @@
+Project ideas for the coming semester (or later on):
+
+1. Contract tutor:
+Gives suggestions to
+-- explain when a contract needs to be generalized
+-- tell when a contract can be refined
+
+2. Property-based program synthesis
+-- allow users to put TODO-like blanks in program
+-- with either simply a contract to fulfill, or richer properties in mind, 
+   have a system to search for possible code fragments 
+
+3. Add higher-order functions to the language -- probably the hardest one of these three.
+-- starting out, maybe with restrictions
+   (for example, disallow self-application within a lambda body)
+
+4. Related to re-write rules: 
+   Add a system to detect non-terminating re-write rules
+   Add a system to allow all matching goals to be tests 
+   (thinking about the examples on p. 113)
