@@ -651,33 +651,6 @@ This will be proven using the induction scheme of ind-cc:
 ;(thm (implies (+-exprp (cons e1 e2))
 ;              (exprp e1)))
 
-; I added these type prescriptions, which helped make some progress.
-; It doesn't feel right, though. -- the system should already 
-; know these facts from what's written above
-(defthm +-exprp2
-  (implies (+-exprp x)
-           (consp (cdr x)))
-  :rule-classes :type-prescription)
-(defthm +-exprp3
-  (implies (+-exprp (list* e1 e2 e3))
-           (not (inc-exprp (list* e1 e2 e3))))
-  :rule-classes :type-prescription)
-(defthm +-exprp4
-  (implies (+-exprp (list* e1 e2 e3))
-           (not (sq-exprp (list* e1 e2 e3))))
-  :rule-classes :type-prescription)
-(defthm +-exprp5
-  (implies (+-exprp (list* e1 e2 e3))
-           (not (*-exprp (list* e1 e2 e3))))
-  :rule-classes :type-prescription)
-
-;; this one fails
-(defthm +-exprp6
-  (implies (+-exprp (list* e1 e2 e3))
-           (consp e3))
-  :rule-classes :type-prescription)
-
-
 #|
 (verify (implies (and (+-exprp e)
                (assignmentp a)
